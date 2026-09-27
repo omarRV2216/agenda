@@ -6,13 +6,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
 use App\Models\AuthUser;
-use App\Models\User;   // 👈 AGREGA ESTA LÍNEA
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 class Login_Controller extends AppBaseController
 {
     public function Login(Request $request)
     {
-        // 1. Validar
+       
         $validator = Validator::make($request->all(), [
             'username' => 'required|string',
             'password' => 'required|string',
@@ -25,7 +26,6 @@ class Login_Controller extends AppBaseController
             return $this->sendError($validator->errors()->first(), 422);
         }
 
-        // 2. Buscar usuario (AuthUser solo para la consulta SQL)
         $authUser = new AuthUser();
         $userData = $authUser->buscarPorUsername($request->username);
 
@@ -33,18 +33,15 @@ class Login_Controller extends AppBaseController
             return $this->sendError('Usuario o contraseña incorrectos', 401);
         }
 
-        // 3. Verificar contraseña
         if (!Hash::check($request->password, $userData->password)) {
             return $this->sendError('Usuario o contraseña incorrectos', 401);
         }
 
-        // 4. Verificar activo
         if (!$userData->active) {
             return $this->sendError('Usuario inactivo. Contacta al administrador', 403);
         }
-
-        // 5. Generar token con el modelo User (que sí tiene HasApiTokens)
-        $user = User::find($userData->id);   // 👈 CAMBIO: User, no AuthUser
+       
+        $user = User::find($userData->id); 
 
         if (!$user) {
             return $this->sendError('Error al generar token', 500);
@@ -52,7 +49,6 @@ class Login_Controller extends AppBaseController
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        // 6. Respuesta
         return $this->sendResponse([
             'token'      => $token,
             'token_type' => 'Bearer',
@@ -67,4 +63,35 @@ class Login_Controller extends AppBaseController
             ],
         ], 'Login exitoso');
     }
+
+     public function Me(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return $this->sendError('No autenticado', 401);
+        }
+
+        // Cargar el rol con SQL raw (o con Eloquent si quieres)
+        $roleData = DB::table('roles')->where('id', $user->role_id)->first();
+
+        return $this->sendResponse([
+            'id'           => $user->id,
+            'name'         => $user->name,
+            'username'     => $user->username,
+            'role'         => $roleData?->name,
+            'role_display' => $roleData?->display_name,
+            'phone'        => $user->phone,
+            'gender'       => $user->gender,
+        ], 'Usuario autenticado');
+    }
+
+    public function Logout(Request $request)
+    {
+        $request->user()->currentAccessToken()->delete();
+
+        return $this->sendSuccess('Sesión cerrada correctamente');
+    }
+
+
 }
