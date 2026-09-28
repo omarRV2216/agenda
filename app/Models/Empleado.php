@@ -193,6 +193,93 @@ class Empleado extends Model
         }
     }
 
+    public function existe($id)
+    {
+        $sql = "SELECT COUNT(*) as total FROM users WHERE id = :id";
+
+        try {
+            $result = DB::select($sql, ['id' => $id]);
+            return $result[0]->total > 0;
+        } catch (\Exception $e) {
+            Log::error('Error existe: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Actualizar empleado.
+     */
+    public function actualizar($id, $data)
+    {
+        $campos = [];
+        $bindings = [];
+
+        if (isset($data['role_id'])) {
+            $campos[] = "role_id = :role_id";
+            $bindings['role_id'] = $data['role_id'];
+        }
+
+        if (isset($data['name'])) {
+            $campos[] = "name = :name";
+            $bindings['name'] = $data['name'];
+        }
+
+        if (isset($data['username'])) {
+            $campos[] = "username = :username";
+            $bindings['username'] = $data['username'];
+        }
+
+        if (!empty($data['password'])) {
+            $campos[] = "password = :password";
+            $bindings['password'] = Hash::make($data['password']);   // 👈 hashear
+        }
+
+        if (isset($data['phone'])) {
+            $campos[] = "phone = :phone";
+            $bindings['phone'] = $data['phone'];
+        }
+
+        if (isset($data['gender'])) {
+            $campos[] = "gender = :gender";
+            $bindings['gender'] = $data['gender'];
+        }
+
+        if (isset($data['active'])) {
+            $campos[] = "active = :active";
+            $bindings['active'] = $data['active'];
+        }
+
+        if (empty($campos)) return false;
+
+        $campos[] = "updated_at = NOW()";
+        $bindings['id'] = $id;
+
+        $sql = "UPDATE users SET " . implode(", ", $campos) . " WHERE id = :id";
+
+        try {
+            DB::update($sql, $bindings);
+            return true;
+        } catch (\Exception $e) {
+        
+            return false;
+        }
+    }
+
+    /**
+     * Eliminar empleado.
+     */
+    public function eliminar($id)
+    {
+        $sql = "DELETE FROM users WHERE id = :id";
+
+        try {
+            DB::delete($sql, ['id' => $id]);
+            return true;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
     public static function GroupbyCampo($campo)
 {
     $camposPermitidos = [

@@ -125,6 +125,98 @@ class Empleado_Controller extends AppBaseController{
 
     }
 
+    // ... Get, Create, GroupByCampo (ya los tienes)
+
+    /**
+     * Actualizar empleado.
+     * PUT/POST /api/empleados/{id}
+     */
+    public function Update(Request $req, $id)
+    {
+        $empleado = new Empleado();
+
+        // Verificar que existe
+        if (!$empleado->existe($id)) {
+            return $this->sendError('Empleado no encontrado', 404);
+        }
+
+        $rules = [
+            'role_id'  => 'required|integer|exists:roles,id',
+            'name'     => 'required|string|min:3|max:255',
+            'username' => 'required|string|min:3|max:255|unique:users,username,' . $id,
+            'password' => 'nullable|string|min:6|max:255',
+            'phone'    => 'required|string|min:10|max:10',
+            'gender'   => 'required|string|in:M,F,O',
+            'active'   => 'required|boolean',
+        ];
+
+        $messages = [
+            'role_id.required'  => 'El campo Rol es requerido',
+            'role_id.exists'    => 'El Rol seleccionado no existe',
+            'name.required'     => 'El campo Nombre es requerido',
+            'name.min'          => 'El Nombre debe tener al menos 3 caracteres',
+            'username.required' => 'El campo Usuario es requerido',
+            'username.unique'   => 'Ese nombre de usuario ya está registrado',
+            'password.min'      => 'La Contraseña debe tener al menos 6 caracteres',
+            'phone.required'    => 'El campo Teléfono es requerido',
+            'phone.min'         => 'El Teléfono debe tener exactamente 10 caracteres',
+            'phone.max'         => 'El Teléfono debe tener exactamente 10 caracteres',
+            'gender.required'   => 'El campo Sexo es requerido',
+            'gender.in'         => 'El Sexo debe ser M, F u O',
+            'active.required'   => 'El campo Activo es requerido',
+            'active.boolean'    => 'El Activo debe ser 0 o 1',
+        ];
+
+        $validator = Validator::make($req->all(), $rules, $messages);
+
+        if ($validator->fails()) {
+            return $this->sendError($validator->errors()->first(), 422);
+        }
+
+        $data = [
+            'role_id'  => $req->role_id,
+            'name'     => $req->name,
+            'username' => $req->username,
+            'phone'    => $req->phone,
+            'gender'   => $req->gender,
+            'active'   => $req->active,
+        ];
+
+        // 👇 Password es opcional: solo si viene con valor
+        if ($req->filled('password')) {
+            $data['password'] = $req->password;
+        }
+
+        $ok = $empleado->actualizar($id, $data);
+
+        if ($ok === false) {
+            return $this->sendError('Error al actualizar el empleado', 500);
+        }
+
+        return $this->sendResponse(null, 'Empleado actualizado exitosamente');
+    }
+
+    /**
+     * Eliminar empleado.
+     * DELETE /api/empleados/{id}
+     */
+    public function Delete($id)
+    {
+        $empleado = new Empleado();
+
+        if (!$empleado->existe($id)) {
+            return $this->sendError('Empleado no encontrado', 404);
+        }
+
+        $ok = $empleado->eliminar($id);
+
+        if ($ok === false) {
+            return $this->sendError('Error al eliminar el empleado', 500);
+        }
+
+        return $this->sendResponse(null, 'Empleado eliminado exitosamente');
+    }
+
     public function GroupByCampo(Request $request){
         $validator = Validator::make($request->all(), [
             "action" => "required|string|in:roles",

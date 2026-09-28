@@ -29,6 +29,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/empleados', [Empleado_Controller::class, 'Get']);
     Route::post('/empleados/create', [Empleado_Controller::class, 'Create']);
+    Route::post('/empleados/{id}',           [Empleado_Controller::class, 'Update']);
+    Route::delete('/empleados/{id}',        [Empleado_Controller::class, 'Delete']);
     Route::post('/Group-By-Campo',     [Empleado_Controller::class, 'GroupByCampo']);
 
 
