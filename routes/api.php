@@ -19,21 +19,21 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/Login', [Login_Controller::class, 'Login']);
 Route::get('/servicios', [Service_Controller::class, 'Get']);
-
+Route::post('/Register_user', [Empleado_Controller::class, 'Create']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/me',      [Login_Controller::class, 'Me']);     
     Route::post('/logout', [Login_Controller::class, 'Logout']);
 
-    Route::post('/Register_user', [Empleado_Controller::class, 'Create']);
+    
 
     Route::get('/empleados', [Empleado_Controller::class, 'Get']);
     Route::post('/empleados/create', [Empleado_Controller::class, 'Create']);
     Route::post('/Group-By-Campo',     [Empleado_Controller::class, 'GroupByCampo']);
 
 
-    Route::post('/servicios/crate',                    [Service_Controller::class, 'Create']);
-    Route::put('/servicios/{id}',                [Service_Controller::class, 'Update']);
+    Route::post('/servicios/create',                    [Service_Controller::class, 'Create']);
+    Route::post('/servicios/{id}',                [Service_Controller::class, 'Update']);
     Route::patch('/servicios/{id}/desactivar',   [Service_Controller::class, 'Desactivar']);
     Route::delete('/servicios/{id}',             [Service_Controller::class, 'Delete']);
 });

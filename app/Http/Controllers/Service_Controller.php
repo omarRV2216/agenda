@@ -52,8 +52,7 @@ class Service_Controller extends AppBaseController
      * Crear servicio.
      * POST /api/servicios
      */
-    public function Create(Request $req)
-    {
+    public function Create(Request $req){
         $rules = [
             'name'             => 'required|string|min:3|max:255',
             'description'      => 'nullable|string|max:1000',
@@ -108,8 +107,7 @@ class Service_Controller extends AppBaseController
      * Actualizar servicio.
      * PUT /api/servicios/{id}
      */
-    public function Update(Request $req, $id)
-    {
+    public function Update(Request $req, $id){
         $service = new Service();
 
         if (!$service->existe($id)) {

@@ -88,7 +88,7 @@ class Service extends Model
             $sql .= " WHERE " . $filtro;
         }
 
-        $sql .= " ORDER BY s.name ASC";
+        $sql .= " ORDER BY s.name DESC";
 
         try {
             return DB::select($sql, $bindings);
@@ -102,8 +102,7 @@ class Service extends Model
     /**
      * Crear servicio.
      */
-    public function insertar($data)
-    {
+    public function insertar($data){
         $sql = "INSERT INTO services 
                     (name, description, price, duration_minutes, photo_path, active, created_at, updated_at)
                 VALUES 
@@ -129,8 +128,7 @@ class Service extends Model
     /**
      * Actualizar servicio.
      */
-    public function actualizar($id, $data)
-    {
+    public function actualizar($id, $data){
         $campos = [];
         $bindings = [];
 
