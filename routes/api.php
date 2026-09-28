@@ -20,5 +20,9 @@ Route::post('/Login', [Login_Controller::class, 'Login']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/me',      [Login_Controller::class, 'Me']);     
-    Route::post('/logout', [Login_Controller::class, 'Logout']);  
+    Route::post('/logout', [Login_Controller::class, 'Logout']);
+
+    Route::get('/empleados', [Empleado_Controller::class, 'Get']);
+    Route::post('/empleados/create', [Empleado_Controller::class, 'Create']);
+    Route::post('/Group-By-Campo',     [Empleado_Controller::class, 'GroupByCampo']);
 });

@@ -8,6 +8,45 @@ use Illuminate\Support\Facades\Log;
 use App\Models\Empleado;
 
 class Empleado_Controller extends AppBaseController{
+
+    public function Get(Request $req){
+        $rules = [
+            'id'       => 'nullable|integer|min:1',
+            'name'     => 'nullable|string|min:1|max:255',
+            'username' => 'nullable|string|min:1|max:255',
+            'phone'    => 'nullable|string|min:1|max:20',
+            'gender'   => 'nullable|string|in:M,F,O',
+            'active'   => 'nullable|boolean',
+            'search'   => 'nullable|string|min:1|max:255',
+        ];
+
+        $validator = Validator::make($req->all(), $rules);
+
+        if ($validator->fails()) {
+            return $this->sendError($validator->errors()->first(), 422);
+        }
+
+        $empleado = new Empleado();
+
+        if ($req->filled('id'))       $empleado->id       = $req->id;
+        if ($req->filled('name'))     $empleado->name     = $req->name;
+        if ($req->filled('username')) $empleado->username = $req->username;
+        if ($req->filled('phone'))    $empleado->phone    = $req->phone;
+        if ($req->filled('gender'))   $empleado->gender   = $req->gender;
+        if ($req->filled('search'))   $empleado->search   = $req->search;
+
+        if ($req->has('active')) {
+            $empleado->active = $req->active;
+        }
+
+        $result = $empleado->consultar();
+
+        if ($result === false) {
+            return $this->sendError('Error al consultar los empleados', 500);
+        }
+
+        return $this->sendResponse($result, 'Empleados consultados exitosamente');
+    }
     
     public function Create (Request $request){
         $validator = Validator::make($request->all(), [
@@ -84,5 +123,21 @@ class Empleado_Controller extends AppBaseController{
             return $this->sendError('Error: ' . $e->getMessage());
         }
 
+    }
+
+    public function GroupByCampo(Request $request){
+        $validator = Validator::make($request->all(), [
+            "action" => "required|string|in:roles",
+        ]);
+
+        $campo = $request->input('action');
+
+        $result = Empleado::GroupbyCampo($campo);
+
+        if ($result === false) {
+            return $this->sendError('Error al consultar los datos agrupados');
+        }
+
+        return $this->sendResponse($result, "Datos {$campo} obtenidos");
     }
 }

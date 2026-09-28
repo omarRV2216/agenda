@@ -20,6 +20,136 @@ class Empleado extends Model
     public $phone;
     public $gender;
     public $active;
+    public $search;
+
+    public function consultar(){
+        $filtro = "";
+        $bindings = [];
+
+        $sql = "SELECT 
+                    u.id,
+                    u.role_id,
+                    u.name,
+                    u.username,
+                    u.phone,
+                    u.birth_date,
+                    u.gender,
+                    u.active,
+                    r.name AS role_name,
+                    r.display_name AS role_display_name
+                FROM users u
+                INNER JOIN roles r ON u.role_id = r.id";
+
+        // ─── Filtro por id ───
+        if (!empty($this->id)) {
+            if ($filtro != "") {
+                $filtro .= " AND ";
+            }
+            $filtro .= "u.id = ?";
+            $bindings[] = $this->id;
+        }
+
+        // ─── Filtro por role_id ───
+        if (!empty($this->role_id)) {
+            if ($filtro != "") {
+                $filtro .= " AND ";
+            }
+            $filtro .= "u.role_id = ?";
+            $bindings[] = $this->role_id;
+        }
+
+        // ─── Filtro por role_name ───
+        if (!empty($this->role_name)) {
+            if ($filtro != "") {
+                $filtro .= " AND ";
+            }
+            $filtro .= "r.name = ?";
+            $bindings[] = $this->role_name;
+        }
+
+        // ─── Filtro por nombre (por palabras) ───
+        if (!empty($this->name)) {
+            $palabras = explode(' ', trim($this->name));
+            $condiciones = [];
+
+            foreach ($palabras as $palabra) {
+                $palabra = trim($palabra);
+                if ($palabra !== '') {
+                    $condiciones[] = "u.name LIKE ?";
+                    $bindings[] = "%" . $palabra . "%";
+                }
+            }
+
+            if (!empty($condiciones)) {
+                if ($filtro != "") {
+                    $filtro .= " AND ";
+                }
+                $filtro .= "(" . implode(" AND ", $condiciones) . ")";
+            }
+        }
+
+        // ─── Filtro por username ───
+        if (!empty($this->username)) {
+            if ($filtro != "") {
+                $filtro .= " AND ";
+            }
+            $filtro .= "u.username LIKE ?";
+            $bindings[] = "%" . $this->username . "%";
+        }
+
+        // ─── Filtro por teléfono ───
+        if (!empty($this->phone)) {
+            if ($filtro != "") {
+                $filtro .= " AND ";
+            }
+            $filtro .= "u.phone LIKE ?";
+            $bindings[] = "%" . $this->phone . "%";
+        }
+
+        // ─── Filtro por género ───
+        if (!empty($this->gender)) {
+            if ($filtro != "") {
+                $filtro .= " AND ";
+            }
+            $filtro .= "u.gender = ?";
+            $bindings[] = $this->gender;
+        }
+
+        // ─── Filtro por activo ───
+        if ($this->active !== null && $this->active !== '') {
+            if ($filtro != "") {
+                $filtro .= " AND ";
+            }
+            $filtro .= "u.active = ?";
+            $bindings[] = $this->active;
+        }
+
+        // ─── Búsqueda libre (nombre O username O teléfono) ───
+        if (!empty($this->search)) {
+            if ($filtro != "") {
+                $filtro .= " AND ";
+            }
+            $filtro .= "(u.name LIKE ? OR u.username LIKE ? OR u.phone LIKE ?)";
+            $like = "%" . $this->search . "%";
+            $bindings[] = $like;
+            $bindings[] = $like;
+            $bindings[] = $like;
+        }
+
+        // ─── Ensamblar SQL final ───
+        if ($filtro != "") {
+            $sql .= " WHERE " . $filtro;
+        }
+
+        $sql .= " ORDER BY u.name ASC";
+
+        try {
+            return DB::select($sql, $bindings);
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
 
     public function Create_user(){
         $sql= "INSERT INTO users 
@@ -62,4 +192,24 @@ class Empleado extends Model
             return false;
         }
     }
+
+    public static function GroupbyCampo($campo)
+{
+    $camposPermitidos = [
+        'roles' => 'SELECT id, name, display_name FROM roles ORDER BY name',
+    ];
+
+    // Validar el campo
+    if (!array_key_exists($campo, $camposPermitidos)) {
+        return false;
+    }
+
+    $sql = $camposPermitidos[$campo];
+
+    try {
+        return DB::select($sql);
+    } catch (\Exception $e) {
+        return false;
+    }
+}
 }
