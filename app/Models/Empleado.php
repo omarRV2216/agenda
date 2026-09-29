@@ -193,8 +193,7 @@ class Empleado extends Model
         }
     }
 
-    public function existe($id)
-    {
+    public function existe($id){
         $sql = "SELECT COUNT(*) as total FROM users WHERE id = :id";
 
         try {
@@ -209,8 +208,7 @@ class Empleado extends Model
     /**
      * Actualizar empleado.
      */
-    public function actualizar($id, $data)
-    {
+    public function actualizar($id, $data){
         $campos = [];
         $bindings = [];
 
@@ -269,7 +267,7 @@ class Empleado extends Model
      * Eliminar empleado.
      */
     public function eliminar($id)
-    {
+{
         $sql = "DELETE FROM users WHERE id = :id";
 
         try {
@@ -280,8 +278,7 @@ class Empleado extends Model
         }
     }
 
-    public static function GroupbyCampo($campo)
-{
+    public static function GroupbyCampo($campo){
     $camposPermitidos = [
         'roles' => 'SELECT id, name, display_name FROM roles ORDER BY name',
     ];
@@ -298,5 +295,21 @@ class Empleado extends Model
     } catch (\Exception $e) {
         return false;
     }
-}
+    }
+
+    public function listaSimple(){
+        $sql = "SELECT
+                u.id,
+                u.name
+            FROM users u
+            WHERE u.active = 1
+              AND u.role_id = 2
+            ORDER BY u.name ASC";
+
+        try {
+            return DB::select($sql);
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
 }

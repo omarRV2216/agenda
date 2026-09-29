@@ -25,6 +25,7 @@ Route::get('/servicios', [Service_Controller::class, 'Get']);
 Route::post('/Register_user', [Empleado_Controller::class, 'Create']);
 Route::post('/appointments/create',       [Appointment_Controller::class, 'Create']);
 Route::post('/employee-services/assign',   [EmployeeService_Controller::class, 'Assign']);
+Route::get('/employees-list', [Empleado_Controller::class, 'ListaSimple']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/me',      [Login_Controller::class, 'Me']);     

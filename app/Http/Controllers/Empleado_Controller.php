@@ -131,8 +131,7 @@ class Empleado_Controller extends AppBaseController{
      * Actualizar empleado.
      * PUT/POST /api/empleados/{id}
      */
-    public function Update(Request $req, $id)
-    {
+    public function Update(Request $req, $id){
         $empleado = new Empleado();
 
         // Verificar que existe
@@ -200,8 +199,7 @@ class Empleado_Controller extends AppBaseController{
      * Eliminar empleado.
      * DELETE /api/empleados/{id}
      */
-    public function Delete($id)
-    {
+    public function Delete($id){
         $empleado = new Empleado();
 
         if (!$empleado->existe($id)) {
@@ -216,6 +214,17 @@ class Empleado_Controller extends AppBaseController{
 
         return $this->sendResponse(null, 'Empleado eliminado exitosamente');
     }
+
+    public function ListaSimple(Request $req){
+    $empleado = new Empleado();
+    $result = $empleado->listaSimple();
+
+    if ($result === false) {
+        return $this->sendError('Error al consultar la lista de empleados', 500);
+    }
+
+    return $this->sendResponse($result, 'Lista de empleados consultada exitosamente');
+}
 
     public function GroupByCampo(Request $request){
         $validator = Validator::make($request->all(), [
