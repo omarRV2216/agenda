@@ -6,6 +6,7 @@ use App\Http\Controllers\Login_Controller;
 use App\Http\Controllers\Service_Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\BusinessConfig_Controller;
 use App\Http\Controllers\Appointment_Controller;
 
 
@@ -31,8 +32,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/me',      [Login_Controller::class, 'Me']);     
     Route::post('/logout', [Login_Controller::class, 'Logout']);
 
-    
-
     Route::get('/empleados', [Empleado_Controller::class, 'Get']);
     Route::post('/empleados/create', [Empleado_Controller::class, 'Create']);
     Route::post('/empleados/{id}',           [Empleado_Controller::class, 'Update']);
@@ -51,23 +50,24 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/appointments/{id}',         [Appointment_Controller::class, 'Update']);
     Route::patch('/appointments/{id}/status', [Appointment_Controller::class, 'ChangeStatus']);
     Route::delete('/appointments/{id}',       [Appointment_Controller::class, 'Delete']);
-
-
     Route::get('/services/{id}/employees',   [EmployeeService_Controller::class, 'EmpleadosPorServicio']);
 
     // Servicios que hace un empleado
     Route::get('/employees/{id}/services',   [EmployeeService_Controller::class, 'ServiciosPorEmpleado']);
 
     // Asignaciones
-    
     Route::post('/employee-services/remove',   [EmployeeService_Controller::class, 'Remove']);
     Route::post('/employee-services/replace',  [EmployeeService_Controller::class, 'Replace']);
     Route::post('/employee-services/available',[EmployeeService_Controller::class, 'Available']);
+
+    //configuracion de horarios 
+    Route::get('/business-config',                 [BusinessConfig_Controller::class, 'Get']);
+    Route::post('/business-config/hours',          [BusinessConfig_Controller::class, 'UpdateHours']);
+    Route::post('/business-config/closures',       [BusinessConfig_Controller::class, 'AddClosure']);
+    Route::delete('/business-config/closures/{id}',[BusinessConfig_Controller::class, 'RemoveClosure']);
 });
 
-Route::get('/imagen/{path}', function ($path) {
-    $fullPath = storage_path('app/public/' . $path);
-
+Route::get('/imagen/{path}', function ($path) {$fullPath = storage_path('app/public/' . $path);
     if (!file_exists($fullPath)) {
         abort(404);
     }

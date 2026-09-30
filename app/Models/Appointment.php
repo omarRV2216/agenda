@@ -37,8 +37,7 @@ class Appointment extends Model
     // ─────────────────────────────────────────────
     // CONSULTAR
     // ─────────────────────────────────────────────
-    public function consultar()
-    {
+    public function consultar() {
         $filtro = "";
         $bindings = [];
 
@@ -180,6 +179,17 @@ class Appointment extends Model
                 'Y-m-d H:i:s',
                 strtotime($startDateTime) + ($durationMinutes * 60)
             );
+
+            // Validar horario del negocio
+            $validacion = $this->validarDentroDeHorario(
+                $this->appointment_date,
+                $startDateTime,
+                $endDateTime
+            );
+
+            if ($validacion !== true) {
+                return $validacion;
+            }
 
             // 3) Validar solapamiento con otras citas del mismo empleado
             if ($this->haySolapamiento(
@@ -334,6 +344,17 @@ class Appointment extends Model
                 strtotime($startDateTime) + ($durationMinutes * 60)
             );
 
+                        // Validar horario del negocio
+            $validacion = $this->validarDentroDeHorario(
+                $data['appointment_date'],
+                $startDateTime,
+                $endDateTime
+            );
+
+            if ($validacion !== true) {
+                return $validacion;
+            }
+
             // 3) Validar solapamiento (excluyendo esta cita)
             if ($this->haySolapamiento(
                 $data['employee_id'],
@@ -430,79 +451,112 @@ class Appointment extends Model
     // DISPONIBILIDAD (slots libres)
     // ─────────────────────────────────────────────
     public function disponibilidad($serviceId, $employeeId, $date)
-    {
-        try {
-            // 1) Duración del servicio
-            $servicio = DB::select(
-                "SELECT duration_minutes 
-                 FROM services 
-                 WHERE id = ? AND active = 1",
-                [$serviceId]
-            );
+{
+    try {
+        // 1) Duración del servicio
+        $servicio = DB::select(
+            "SELECT duration_minutes
+             FROM services
+             WHERE id = ? AND active = 1",
+            [$serviceId]
+        );
 
-            if (empty($servicio)) {
-                return false;
-            }
+        if (empty($servicio)) {
+            return false;
+        }
 
-            $duration = (int) $servicio[0]->duration_minutes;
+        $duration = (int) $servicio[0]->duration_minutes;
 
-            // 2) Horario laboral (ajústalo a tu negocio)
-            $horaApertura = 9;   // 09:00
-            $horaCierre   = 20;  // 20:00
+        // 2) Horario del día según business_hours
+        $dayOfWeek = date('N', strtotime($date));
 
-            // 3) Citas ya agendadas ese día para ese empleado
-            $citas = DB::select(
-                "SELECT start_time, end_time 
-                 FROM appointments 
-                 WHERE employee_id = :employee_id
-                   AND appointment_date = :date
-                   AND deleted_at IS NULL
-                   AND status NOT IN ('cancelled', 'no_show')
-                 ORDER BY start_time ASC",
-                [
-                    'employee_id' => $employeeId,
-                    'date'        => $date,
-                ]
-            );
+        $businessHour = (new \App\Models\BusinessHour())->horarioDelDia($dayOfWeek);
 
-            // 4) Generar slots cada 30 min y marcar disponibilidad
-            $slots = [];
-            $slotDuracion = 30; // granularidad en minutos
-
-            $inicio = strtotime($date . ' ' . sprintf('%02d:00:00', $horaApertura));
-            $fin    = strtotime($date . ' ' . sprintf('%02d:00:00', $horaCierre));
-
-            for ($t = $inicio; $t + ($duration * 60) <= $fin; $t += ($slotDuracion * 60)) {
-                $slotStart = date('Y-m-d H:i:s', $t);
-                $slotEnd   = date('Y-m-d H:i:s', $t + ($duration * 60));
-
-                $ocupado = false;
-                foreach ($citas as $c) {
-                    // Solapamiento
-                    if ($slotStart < $c->end_time && $slotEnd > $c->start_time) {
-                        $ocupado = true;
-                        break;
-                    }
-                }
-
-                $slots[] = [
-                    'start'     => date('H:i', $t),
-                    'end'       => date('H:i', $t + ($duration * 60)),
-                    'available' => !$ocupado,
-                ];
-            }
-
+        if (!$businessHour || !$businessHour->is_open) {
             return [
                 'date'             => $date,
                 'duration_minutes' => $duration,
-                'slots'            => $slots,
+                'open_time'        => null,
+                'close_time'       => null,
+                'slots'            => [],
             ];
-
-        } catch (\Exception $e) {
-            Log::error('Error disponibilidad: ' . $e->getMessage());
-            return false;
         }
+
+        // 3) ¿Hay excepción para esa fecha?
+        $closure = (new \App\Models\BusinessClosure())->porFecha($date);
+
+        if ($closure) {
+            if ($closure->type === 'closed') {
+                return [
+                    'date'             => $date,
+                    'duration_minutes' => $duration,
+                    'open_time'        => null,
+                    'close_time'       => null,
+                    'slots'            => [],
+                ];
+            }
+
+            $horaApertura = $closure->open_time;
+            $horaCierre   = $closure->close_time;
+        } else {
+            $horaApertura = $businessHour->open_time;
+            $horaCierre   = $businessHour->close_time;
+        }
+
+        // 4) Citas existentes ese día
+        $citas = DB::select(
+            "SELECT start_time, end_time
+             FROM appointments
+             WHERE employee_id = :employee_id
+               AND appointment_date = :date
+               AND deleted_at IS NULL
+               AND status NOT IN ('cancelled', 'no_show')
+             ORDER BY start_time ASC",
+            [
+                'employee_id' => $employeeId,
+                'date'        => $date,
+            ]
+        );
+
+        // 5) Generar slots
+        $slots = [];
+        $slotDuracion = 30;
+
+        $inicio = strtotime($date . ' ' . $horaApertura);
+        $fin    = strtotime($date . ' ' . $horaCierre);
+
+        for ($t = $inicio; $t + ($duration * 60) <= $fin; $t += ($slotDuracion * 60)) {
+            $slotStart = date('Y-m-d H:i:s', $t);
+            $slotEnd   = date('Y-m-d H:i:s', $t + ($duration * 60));
+
+            $ocupado = false;
+            foreach ($citas as $c) {
+                if ($slotStart < $c->end_time && $slotEnd > $c->start_time) {
+                    $ocupado = true;
+                    break;
+                }
+            }
+
+            $slots[] = [
+                'start'     => date('H:i', $t),
+                'end'       => date('H:i', $t + ($duration * 60)),
+                'available' => !$ocupado,
+            ];
+        }
+
+        return [
+            'date'             => $date,
+            'duration_minutes' => $duration,
+            'open_time'        => $horaApertura,
+            'close_time'       => $horaCierre,
+            'slots'            => $slots,
+        ];
+
+    } catch (\Exception $e) {
+        Log::error('Error disponibilidad: ' . $e->getMessage());
+        return false;
     }
+}
 
     // ─────────────────────────────────────────────
     // PRÓXIMAS CITAS
@@ -541,5 +595,49 @@ class Appointment extends Model
             Log::error('Error proximas: ' . $e->getMessage());
             return false;
         }
+    }
+
+    /**
+ * Valida que la cita caiga completamente dentro del horario del negocio.
+ * Devuelve true si OK, o un string con el error.
+ */
+    public function validarDentroDeHorario($date, $startDateTime, $endDateTime){
+        $dayOfWeek = date('N', strtotime($date));
+
+        $closure = (new \App\Models\BusinessClosure())->porFecha($date);
+
+        if ($closure) {
+            if ($closure->type === 'closed') {
+                return "El negocio está cerrado ese día";
+            }
+            $horaApertura = $closure->open_time;
+            $horaCierre   = $closure->close_time;
+        } else {
+            $businessHour = (new \App\Models\BusinessHour())->horarioDelDia($dayOfWeek);
+
+            if (!$businessHour) {
+                return "No hay horario configurado para ese día";
+            }
+
+            if (!$businessHour->is_open) {
+                return "El negocio está cerrado ese día";
+            }
+
+            $horaApertura = $businessHour->open_time;
+            $horaCierre   = $businessHour->close_time;
+        }
+
+        $openDateTime  = date('Y-m-d H:i:s', strtotime($date . ' ' . $horaApertura));
+        $closeDateTime = date('Y-m-d H:i:s', strtotime($date . ' ' . $horaCierre));
+
+        if ($startDateTime < $openDateTime) {
+            return "La cita empieza antes de la apertura ({$horaApertura})";
+        }
+
+        if ($endDateTime > $closeDateTime) {
+            return "La cita termina después del cierre ({$horaCierre})";
+        }
+
+        return true;
     }
 }
