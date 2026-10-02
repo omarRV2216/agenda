@@ -57,87 +57,90 @@ class Appointment_Controller extends AppBaseController{
     }
 
     public function Create(Request $request){
-        $validator = Validator::make($request->all(), [
-            'service_id'       => 'required|integer|exists:services,id',
-            'employee_id'      => 'required|integer|exists:users,id',
-            'client_name'      => 'required|string|min:3|max:150',
-            'client_phone'     => 'nullable|string|max:20',
-            'client_email'     => 'nullable|email|max:150',
-            'appointment_date' => 'required|date_format:Y-m-d|after_or_equal:today',
-            'start_time'       => 'required|date_format:H:i',
-            'notes'            => 'nullable|string|max:1000',
-        ], [
-            // service_id
-            'service_id.required'  => 'El campo Servicio es requerido',
-            'service_id.integer'   => 'El campo Servicio debe ser un número entero',
-            'service_id.exists'    => 'El Servicio seleccionado no existe',
+    $validator = Validator::make($request->all(), [
+        'service_id'       => 'required|integer|exists:services,id',
+        'employee_id'      => 'required|integer|exists:users,id',
+        'client_name'      => 'required|string|min:3|max:150',
+        'client_phone'     => 'nullable|string|max:20',
+        'client_email'     => 'nullable|email|max:150',
+        'appointment_date' => 'required|date_format:Y-m-d|after_or_equal:today',
+        'start_time'       => 'required|date_format:H:i',
+        'notes'            => 'nullable|string|max:1000',
+    ], [
+        // service_id
+        'service_id.required'  => 'El campo Servicio es requerido',
+        'service_id.integer'   => 'El campo Servicio debe ser un número entero',
+        'service_id.exists'    => 'El Servicio seleccionado no existe',
 
-            // employee_id
-            'employee_id.required' => 'El campo Empleado es requerido',
-            'employee_id.integer'  => 'El campo Empleado debe ser un número entero',
-            'employee_id.exists'   => 'El Empleado seleccionado no existe',
+        // employee_id
+        'employee_id.required' => 'El campo Empleado es requerido',
+        'employee_id.integer'  => 'El campo Empleado debe ser un número entero',
+        'employee_id.exists'   => 'El Empleado seleccionado no existe',
 
-            // client_name
-            'client_name.required' => 'El campo Nombre del cliente es requerido',
-            'client_name.string'   => 'El campo Nombre del cliente debe ser texto',
-            'client_name.min'      => 'El campo Nombre del cliente debe tener al menos 3 caracteres',
-            'client_name.max'      => 'El campo Nombre del cliente no debe exceder 150 caracteres',
+        // client_name
+        'client_name.required' => 'El campo Nombre del cliente es requerido',
+        'client_name.string'   => 'El campo Nombre del cliente debe ser texto',
+        'client_name.min'      => 'El campo Nombre del cliente debe tener al menos 3 caracteres',
+        'client_name.max'      => 'El campo Nombre del cliente no debe exceder 150 caracteres',
 
-            // client_phone
-            'client_phone.string'  => 'El campo Teléfono debe ser texto',
-            'client_phone.max'     => 'El campo Teléfono no debe exceder 20 caracteres',
+        // client_phone
+        'client_phone.string'  => 'El campo Teléfono debe ser texto',
+        'client_phone.max'     => 'El campo Teléfono no debe exceder 20 caracteres',
 
-            // client_email
-            'client_email.email'   => 'El campo Email debe tener un formato válido',
-            'client_email.max'     => 'El campo Email no debe exceder 150 caracteres',
+        // client_email
+        'client_email.email'   => 'El campo Email debe tener un formato válido',
+        'client_email.max'     => 'El campo Email no debe exceder 150 caracteres',
 
-            // appointment_date
-            'appointment_date.required'       => 'El campo Fecha es requerido',
-            'appointment_date.date_format'    => 'El campo Fecha debe tener formato YYYY-MM-DD',
-            'appointment_date.after_or_equal' => 'La Fecha no puede ser en el pasado',
+        // appointment_date
+        'appointment_date.required'       => 'El campo Fecha es requerido',
+        'appointment_date.date_format'    => 'El campo Fecha debe tener formato YYYY-MM-DD',
+        'appointment_date.after_or_equal' => 'La Fecha no puede ser en el pasado',
 
-            // start_time
-            'start_time.required'    => 'El campo Hora de inicio es requerido',
-            'start_time.date_format' => 'El campo Hora debe tener formato HH:MM',
+        // start_time
+        'start_time.required'    => 'El campo Hora de inicio es requerido',
+        'start_time.date_format' => 'El campo Hora debe tener formato HH:MM',
 
-            // notes
-            'notes.string' => 'El campo Notas debe ser texto',
-            'notes.max'    => 'El campo Notas no debe exceder 1000 caracteres',
-        ]);
+        // notes
+        'notes.string' => 'El campo Notas debe ser texto',
+        'notes.max'    => 'El campo Notas no debe exceder 1000 caracteres',
+    ]);
 
-        if ($validator->fails()) {
-            return $this->sendError($validator->errors()->first());
-        }
-
-        $validated = $validator->validated();
-
-        $appointment = new Appointment();
-
-        foreach ($validated as $key => $value) {
-            $appointment->$key = $value;
-        }
-
-        // created_by: quién agenda la cita (usuario autenticado)
-        $appointment->created_by = $request->user()?->id ?? null;
-
-        try {
-            $resultado = $appointment->Create_appointment();
-
-            if ($resultado === false) {
-                return $this->sendError('Error al crear la cita');
-            }
-
-            // Si el modelo devuelve string → error de negocio (solapamiento)
-            if (is_string($resultado)) {
-                return $this->sendError($resultado);
-            }
-
-            return $this->sendSuccess("Cita creada exitosamente");
-
-        } catch (\Exception $e) {
-            return $this->sendError('Error: ' . $e->getMessage());
-        }
+    if ($validator->fails()) {
+        return $this->sendError($validator->errors()->first());
     }
+
+    $validated = $validator->validated();
+
+    $appointment = new Appointment();
+
+    foreach ($validated as $key => $value) {
+        $appointment->$key = $value;
+    }
+
+    // 👇 CAMBIO AQUÍ
+    // created_by: quién agenda la cita
+    // - Portal público (sin token) → null
+    // - Admin/colaborador logueado (con token) → user_id
+    $user = auth('sanctum')->user();
+    $appointment->created_by = $user?->id ?? null;
+
+    try {
+        $resultado = $appointment->Create_appointment();
+
+        if ($resultado === false) {
+            return $this->sendError('Error al crear la cita');
+        }
+
+        if (is_string($resultado)) {
+            return $this->sendError($resultado);
+        }
+
+        return $this->sendSuccess("Cita creada exitosamente");
+
+    } catch (\Exception $e) {
+        return $this->sendError('Error: ' . $e->getMessage());
+    }
+}
 
     public function Update(Request $req, $id)
     {

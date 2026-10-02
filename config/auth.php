@@ -42,6 +42,11 @@ return [
         ],
     ],
 
+    'sanctum' => [           // 👈 debe existir
+        'driver' => 'sanctum',
+        'provider' => 'users',
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | User Providers

@@ -200,7 +200,6 @@ class Empleado extends Model
             $result = DB::select($sql, ['id' => $id]);
             return $result[0]->total > 0;
         } catch (\Exception $e) {
-            Log::error('Error existe: ' . $e->getMessage());
             return false;
         }
     }
