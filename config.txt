@@ -1,3 +1,22 @@
-php artisan migrate
 
-php artisan db:seed
+correr los sedders en panel 
+
+1 php artisan migrate
+
+2 php artisan db:seed
+
+
+generar build para cada usuario flutter web 
+
+flutter build web -t lib/main.dart -o build/admin --release
+
+
+flutter build web -t lib/main_portal.dart -o build/portal --release
+
+generar build para casa usuario flutter mobile
+
+# Android
+flutter build apk --release -t lib/main.dart
+
+# iOS (requiere Mac)
+flutter build ios --release -t lib/main.dart
